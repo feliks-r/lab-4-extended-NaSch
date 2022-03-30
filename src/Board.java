@@ -4,12 +4,11 @@ import java.awt.*;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.MouseEvent;
-import java.util.Random;
 
 public class Board extends JComponent implements MouseInputListener, ComponentListener {
     private static final long serialVersionUID = 1L;
     private Point[][] points;
-    private int size = 10;
+    private int size = 25;
     public int editType = 0;
     private int maxVelocity = 5;
     private int p = 10;
@@ -28,11 +27,18 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
         for (int x = 0; x < points.length; ++x) {
             for (int y = 0; y < points[x].length; ++y) {
                 points[x][y] = new Point();
+                points[x][y].setVelocity((points[x][y].getType()*2)+1);
             }
         }
         for (int x = 0; x < points.length-1; ++x) {
-            for (int y = 0; y < points[x].length; ++y) {
+            for (int y = 2; y < points[x].length - 2; ++y) {
                 points[x][y].setNext(points[x+points[x][y].getVelocity()][y]);
+            }
+        }
+        for (int x = 0; x < points.length-1; ++x) {
+            for (int y = 0; y < 2; ++y) {
+                points[x][y].setType(5);
+                points[x][points[x].length-y-1].setType(5);
             }
         }
 
@@ -43,8 +49,6 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
 
     public void iteration() {
 
-        Random rand = new Random();
-
         for (int x = 0; x < points.length; ++x) {
             for (int y = 0; y < points[x].length; ++y) {
                 points[x][y].setMoved(false);
@@ -52,18 +56,43 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
         }
 
         for (int x = 0; x < points.length; ++x) {
-            for (int y = 0; y < points[x].length; ++y) {
 
-                if(points[x][y].getVelocity() < maxVelocity){
+
+            int dist = 0;
+
+            //return
+            boolean ret = true;
+
+            while(points[(points.length+x-dist-1)%points.length][2].getType() != 1 &&
+                    points[(points.length+x-dist-1)%points.length][3].getType() != 1 &&
+                    dist <= maxVelocity){
+                dist+=1;
+            }
+            if(dist < maxVelocity){
+                ret = false;
+            }
+            dist = 0;
+
+            while(points[(x+dist+1)%points.length][3].getType() != 1 &&
+                    dist <= points[x][3].getVelocity()){
+                dist+=1;
+            }
+
+            if(dist < points[x][3].getVelocity()){
+                ret = false;
+            }
+
+            if(ret){
+                points[x][2].setNext( points[ ( x + points[x][2].getVelocity() ) % points.length ][3] );
+                points[x][2].move();
+            }
+
+            for(int y = 2; y<4; y++){
+
+                if(points[x][y].getVelocity() < (points[x][y].getType()*2)+1){
                     points[x][y].changeVelocity(1);
                 }
-                if(points[x][y].getVelocity() >= 1){
-                    int n = rand.nextInt(100);
-                    if(n<=p){
-                        points[x][y].changeVelocity(-1);
-                    }
-                }
-                int dist = 0;
+                dist = 0;
 
                 while(points[(x+dist+1)%points.length][y].getType() != 1 && dist <= points[x][y].getVelocity()){
                     dist+=1;
@@ -72,15 +101,18 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
                     points[x][y].setVelocity(dist);
                 }
                 points[x][y].setNext(points[(x+points[x][y].getVelocity())%points.length][y]);
-                points[x][y].move();
             }
+
+            points[x][2].move();
+            points[x][3].move();
+
         }
         this.repaint();
     }
 
     public void clear() {
         for (int x = 0; x < points.length; ++x)
-            for (int y = 0; y < points[x].length; ++y) {
+            for (int y = 2; y < 4; ++y) {
                 points[x][y].clear();
             }
         this.repaint();
@@ -119,11 +151,20 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
             for (y = 0; y < points[x].length; ++y) {
                 float a = 1.0F;
 
-                if(points[x][y].getType() == 1){
-                    g.setColor(new Color(0, 0, 0));
-                }
-                else{
+                if(points[x][y].getType() == 0){
                     g.setColor(new Color(255, 255, 255));
+                }
+                else if (points[x][y].getType() == 1){
+                    g.setColor(new Color(245, 224, 103));
+                }
+                else if (points[x][y].getType() == 2){
+                    g.setColor(new Color(104, 181, 232));
+                }
+                else if (points[x][y].getType() == 3){
+                    g.setColor(new Color(214, 91, 75));
+                }
+                else if (points[x][y].getType() == 5){
+                    g.setColor(new Color(167, 199, 127));
                 }
 
                 g.fillRect((x * size) + 1, (y * size) + 1, (size - 1), (size - 1));
@@ -136,10 +177,12 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
         int x = e.getX() / size;
         int y = e.getY() / size;
         if ((x < points.length) && (x > 0) && (y < points[x].length) && (y > 0)) {
-            if (editType == 0) {
+            if(editType==0){
                 points[x][y].clicked();
             }
-            this.repaint();
+            else {
+                points[x][y].setType(editType);
+            } this.repaint();
         }
     }
 
@@ -153,10 +196,12 @@ public class Board extends JComponent implements MouseInputListener, ComponentLi
         int x = e.getX() / size;
         int y = e.getY() / size;
         if ((x < points.length) && (x > 0) && (y < points[x].length) && (y > 0)) {
-            if (editType == 0) {
+            if(editType==0){
                 points[x][y].clicked();
             }
-            this.repaint();
+            else {
+                points[x][y].setType(editType);
+            } this.repaint();
         }
     }
 

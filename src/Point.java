@@ -3,7 +3,9 @@ public class Point {
     private int type;
     private Point next;
     private boolean moved;
-    private int velocity = 1;
+    private int velocity;
+
+    public static Integer[] types = {0, 1, 2, 3, 5};
 
     public void setVelocity(int velocity) {
         this.velocity = velocity;
@@ -15,6 +17,10 @@ public class Point {
 
     public int getType() {
         return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 
     public Point getNext() {
@@ -38,16 +44,16 @@ public class Point {
     }
 
     public void move() {
-        if(!moved && next.getType() == 0 && type == 1){
+        if(!moved && next.getType() == 0 && type != 0){
+            next.setType(this.type);
             type = 0;
-            next.clicked();
             moved = true;
             next.setMoved(true);
         }
     }
 
     public void clicked() {
-        type = 1;
+        type = 0;
     }
 
     public void clear() {
